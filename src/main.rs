@@ -19,12 +19,14 @@ fn main() {
     let mut stdout = stdout().into_raw_mode().unwrap();
 
     let mut selection: usize = 0;
-    write_options(vec!["Server", "Client", "Option3"], selection, &mut stdout);
+    let options = vec!["Server", "Client"];
+    write_options(&options, selection, &mut stdout);
 
     // Flush stdout (i.e. make the output appear).
     stdout.flush().unwrap();
 
     for c in stdin.keys() {
+        let go: bool = false;
         // Clear the current line.
         write!(stdout, "{}{}", termion::cursor::Goto(1, 1), 
                termion::clear::CurrentLine).unwrap();
@@ -37,22 +39,31 @@ fn main() {
             Key::Up        => if selection > 0 {
                 selection -= 1;
             },
-            Key::Down      => if selection < 2 {
+            Key::Down      => if selection < options.len()-1 {
                 selection += 1;
             },
+            Key::Char('\n')     => break,
             _              => continue,
         }
-        write_options(vec!["Server", "Client", "Option3"], selection, &mut stdout);
-
-        // Flush again.
+        write_options(&options, selection, &mut stdout);
         stdout.flush().unwrap();
+    }
+
+    write!(stdout, "{}{}", termion::cursor::Goto(1, 1), 
+               termion::clear::All).unwrap();        
+    stdout.flush().unwrap();
+
+    if selection == 0 {
+        server::main();
+    } else {
+        client::main();
     }
 
     // Show the cursor again before we exit.
     write!(stdout, "{}", termion::cursor::Show).unwrap();
 }
 
-fn write_options(options: Vec<&str>, mut selected: usize, stdout: &mut termion::raw::RawTerminal<std::io::Stdout>) {
+fn write_options(options: &Vec<&str>, selected: usize, stdout: &mut termion::raw::RawTerminal<std::io::Stdout>) {
     let mut to_print = String::new();
     for (i, s) in options.iter().enumerate() {
         let mut to_add = String::new();
