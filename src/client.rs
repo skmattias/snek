@@ -1,19 +1,11 @@
 use std::net::{TcpStream};
 use std::str::from_utf8;
 use std::io::{stdin,stdout,Write,Read};
-use termion::raw::IntoRawMode;
-use termion::event::Key;
-use termion::input::TermRead;
 use common::print_tools;
 
 pub fn main() {
-    let mut stdout = stdout().into_raw_mode().unwrap();
-    
-
     match TcpStream::connect("localhost:3333") {
-
         Ok(mut stream) => {
-            
             print_tools::print_line("Successfully connected to server in port 3333".to_string());
             let msg = b"Hello!";
 

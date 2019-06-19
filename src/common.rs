@@ -1,9 +1,12 @@
 extern crate termion;
 
 pub mod print_tools {
-    use std::io::{stdout,Write};
+    use std::io::{stdout,stdin,Write};
     use termion::raw::IntoRawMode;
+    use termion::input::TermRead;
+    use termion::{async_stdin, clear, color, cursor, style};
 
+    // Write functions.
     pub fn print_line(text: String) {
         let mut stdout = stdout().into_raw_mode().unwrap();
         write!(stdout, "{}{}\r\n",
@@ -32,11 +35,13 @@ pub mod print_tools {
     pub fn hide_cursor() {
         let mut stdout = stdout().into_raw_mode().unwrap();        
         write!(stdout, "{}", termion::cursor::Hide).unwrap();
+        stdout.flush().unwrap();
     }
 
     pub fn show_cursor() {
         let mut stdout = stdout().into_raw_mode().unwrap();        
         write!(stdout, "{}", termion::cursor::Show).unwrap();
+        stdout.flush().unwrap();
     }
 }
 

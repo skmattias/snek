@@ -7,6 +7,7 @@ use std::thread;
 mod common;
 mod client;
 mod server;
+mod snek;
 
 use common::print_tools;
 use termion::*;
@@ -17,9 +18,9 @@ use termion::input::TermRead;
 fn main() {
     // Get the standard input stream.
     let stdin = stdin();
-
+    let mut stdout = stdout().into_raw_mode().unwrap();
     let mut selection: usize = 0;
-    let options = vec!["Server", "Client"];
+    let options = vec!["Server", "Client", "Single Player"];
     write_options(&options, selection);
 
 
@@ -46,10 +47,12 @@ fn main() {
 
     print_tools::clear();
 
-    if selection == 0 {
-        server::main();
-    } else {
-        client::main();
+
+    match selection {
+        0 => server::main(),
+        1 => client::main(),
+        2 => snek::main(),
+        _ => std::process::exit(1)
     }
 
     print_tools::show_cursor();
