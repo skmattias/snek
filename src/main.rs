@@ -17,7 +17,9 @@ fn main() {
     let stdin = stdin();
     // Get the standard output stream and go to raw mode.
     let mut stdout = stdout().into_raw_mode().unwrap();
-    write_options(vec!["Server", "Client"], 1, &mut stdout);
+
+    let mut selection: usize = 0;
+    write_options(vec!["Server", "Client", "Option3"], selection, &mut stdout);
 
     // Flush stdout (i.e. make the output appear).
     stdout.flush().unwrap();
@@ -32,16 +34,15 @@ fn main() {
             // Exit.
             Key::Char('q') => break,
 
-            Key::Up        => write!(stdout, "<{}{}> Server\r\n  Client{}",
-                                     termion::clear::All, 
-                                     termion::cursor::Goto(1, 1), 
-                                     termion::cursor::Hide).unwrap(),
-            Key::Down      => write!(stdout, "<{}{}  Server\r\n> Client{}",
-                                     termion::clear::All, 
-                                     termion::cursor::Goto(1, 1), 
-                                     termion::cursor::Hide).unwrap(),
+            Key::Up        => if selection > 0 {
+                selection -= 1;
+            },
+            Key::Down      => if selection < 2 {
+                selection += 1;
+            },
             _              => continue,
         }
+        write_options(vec!["Server", "Client", "Option3"], selection, &mut stdout);
 
         // Flush again.
         stdout.flush().unwrap();
@@ -51,11 +52,11 @@ fn main() {
     write!(stdout, "{}", termion::cursor::Show).unwrap();
 }
 
-fn write_options(options: Vec<&str>, selected: usize, stdout: &mut termion::raw::RawTerminal<std::io::Stdout>) {
+fn write_options(options: Vec<&str>, mut selected: usize, stdout: &mut termion::raw::RawTerminal<std::io::Stdout>) {
     let mut to_print = String::new();
     for (i, s) in options.iter().enumerate() {
         let mut to_add = String::new();
-        if i+1 == selected {
+        if i == selected {
             to_add = format!("> {}\r\n", s);
         } else {
             to_add = format!("  {}\r\n", s);
