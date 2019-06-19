@@ -4,9 +4,11 @@ use std::io::{stdin,stdout,Write};
 use std::time::Duration;
 use std::thread;
 
+mod common;
 mod client;
 mod server;
 
+use common::print_tools;
 use termion::*;
 use termion::raw::IntoRawMode;
 use termion::event::Key;
@@ -15,21 +17,15 @@ use termion::input::TermRead;
 fn main() {
     // Get the standard input stream.
     let stdin = stdin();
-    // Get the standard output stream and go to raw mode.
-    let mut stdout = stdout().into_raw_mode().unwrap();
 
     let mut selection: usize = 0;
     let options = vec!["Server", "Client"];
-    write_options(&options, selection, &mut stdout);
+    write_options(&options, selection);
 
-    // Flush stdout (i.e. make the output appear).
-    stdout.flush().unwrap();
 
     for c in stdin.keys() {
         let go: bool = false;
-        // Clear the current line.
-        write!(stdout, "{}{}", termion::cursor::Goto(1, 1), 
-               termion::clear::CurrentLine).unwrap();
+        print_tools::clear();
 
         // Print the key we type...
         match c.unwrap() {
@@ -45,13 +41,10 @@ fn main() {
             Key::Char('\n')     => break,
             _              => continue,
         }
-        write_options(&options, selection, &mut stdout);
-        stdout.flush().unwrap();
+        write_options(&options, selection);
     }
 
-    write!(stdout, "{}{}", termion::cursor::Goto(1, 1), 
-               termion::clear::All).unwrap();        
-    stdout.flush().unwrap();
+    print_tools::clear();
 
     if selection == 0 {
         server::main();
@@ -59,11 +52,10 @@ fn main() {
         client::main();
     }
 
-    // Show the cursor again before we exit.
-    write!(stdout, "{}", termion::cursor::Show).unwrap();
+    print_tools::show_cursor();
 }
 
-fn write_options(options: &Vec<&str>, selected: usize, stdout: &mut termion::raw::RawTerminal<std::io::Stdout>) {
+fn write_options(options: &Vec<&str>, selected: usize) {
     let mut to_print = String::new();
     for (i, s) in options.iter().enumerate() {
         let mut to_add = String::new();
@@ -75,9 +67,5 @@ fn write_options(options: &Vec<&str>, selected: usize, stdout: &mut termion::raw
         to_print.push_str(&to_add);
     }
 
-    write!(stdout, "{}{}{}{}",
-           termion::clear::All, // Clear the screen.
-           termion::cursor::Goto(1, 1), // Goto (1,1).
-           to_print,
-           termion::cursor::Hide).unwrap(); // Hide the cursor.
+    print_tools::clear_and_print_line(to_print);
 }

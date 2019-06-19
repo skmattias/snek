@@ -1,35 +1,43 @@
 use std::net::{TcpStream};
-use std::io::{Read, Write};
 use std::str::from_utf8;
+use std::io::{stdin,stdout,Write,Read};
+use termion::raw::IntoRawMode;
+use termion::event::Key;
+use termion::input::TermRead;
+use common::print_tools;
 
 pub fn main() {
-    match TcpStream::connect("localhost:3333") {
-        Ok(mut stream) => {
-            println!("Successfully connected to server in port 3333");
+    let mut stdout = stdout().into_raw_mode().unwrap();
+    
 
+    match TcpStream::connect("localhost:3333") {
+
+        Ok(mut stream) => {
+            
+            print_tools::print_line("Successfully connected to server in port 3333".to_string());
             let msg = b"Hello!";
 
             stream.write(msg).unwrap();
-            println!("Sent Hello, awaiting reply...");
+            print_tools::print_line("Sent hello, waiting for reply...".to_string());
 
             let mut data = [0 as u8; 6]; // using 6 byte buffer
             match stream.read_exact(&mut data) {
                 Ok(_) => {
                     if &data == msg {
-                        println!("Reply is ok!");
+                        print_tools::print_line("Reply is ok!".to_string());
                     } else {
                         let text = from_utf8(&data).unwrap();
-                        println!("Unexpected reply: {}", text);
+                        print_tools::print_line(format!("Unexpected reply: {}", text));
                     }
                 },
                 Err(e) => {
-                    println!("Failed to receive data: {}", e);
+                    print_tools::print_line(format!("Failed to receive data: {}", e));
                 }
             }
         },
         Err(e) => {
-            println!("Failed to connect: {}", e);
+            print_tools::print_line(format!("Failed to connect: {}", e));
         }
     }
-    println!("Terminated.");
+    print_tools::print_line("Terminated".to_string());
 }
