@@ -11,23 +11,19 @@ fn handle_client(mut stream: TcpStream) {
     while match stream.read(&mut data) {
         Ok(size) => {
             // echo everything!
+            let mut r = true;
             let received =  str::from_utf8(&data[0..size]).unwrap();
-            
             if size > 0 {
                 print_tools::print_line(format!("Received: {}", received));
-            
-                
-
-
                 stream.write(&data[0..size]).unwrap();
                 print_tools::print_line(format!("Sent: {}", received));
             }
 
             if received == "quit  " {
-                print_tools::print_line(format!("I WANT TO QUIT"));
-                // return false; // not working...
+                print_tools::print_line(format!("Disconnecting.."));
+                r = false;
             }
-            true
+            r
         },
             Err(_) => {
                 print_tools::print_line(format!("An error occured, terminating connection with {}", stream.peer_addr().unwrap()));
