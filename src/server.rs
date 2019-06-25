@@ -3,6 +3,8 @@ use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
 use common::print_tools;
 use std::str;
+// use std::sync::mpsc;
+
 
 fn handle_client(mut stream: TcpStream) {
     let mut data = [0 as u8; 50]; // using 50 byte buffer
@@ -10,10 +12,20 @@ fn handle_client(mut stream: TcpStream) {
         Ok(size) => {
             // echo everything!
             let received =  str::from_utf8(&data[0..size]).unwrap();
+            
             if size > 0 {
                 print_tools::print_line(format!("Received: {}", received));
-            stream.write(&data[0..size]).unwrap();
-            print_tools::print_line(format!("Sent: {}", received));
+            
+                
+
+
+                stream.write(&data[0..size]).unwrap();
+                print_tools::print_line(format!("Sent: {}", received));
+            }
+
+            if received == "quit  " {
+                print_tools::print_line(format!("I WANT TO QUIT"));
+                // return false; // not working...
             }
             true
         },
@@ -26,12 +38,16 @@ fn handle_client(mut stream: TcpStream) {
 }
 
 pub fn main() {
+    // let (tx, rx) = mpsc::channel();
+
     let listener = TcpListener::bind("0.0.0.0:3333").unwrap();
     // accept connections and process them, spawning a new thread for each one
     print_tools::print_line("Server listening on port 3333".to_string());
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
+                // let tx1 = mpsc::Sender::clone(&tx);
+
                 print_tools::print_line(format!("New connection: {}", stream.peer_addr().unwrap()));
                 thread::spawn(move|| {
                     // connection succeeded
@@ -44,9 +60,13 @@ pub fn main() {
                 /* connection failed */
             }
         }
+        print_tools::print_line(format!("looping ag"));
     }
-    
+
     print_tools::print_line(format!("Hellooo..."));
     // close the socket server
     drop(listener);
 }
+
+// fn game_loop () {
+// }
