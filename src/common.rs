@@ -1,10 +1,9 @@
 extern crate termion;
+extern crate rand;
 
 pub mod print_tools {
-    use std::io::{stdout,stdin,Write};
+    use std::io::{stdout,Write};
     use termion::raw::IntoRawMode;
-    use termion::input::TermRead;
-    use termion::{async_stdin, clear, color, cursor, style};
 
     // Write functions.
     pub fn print_line(text: String) {
@@ -43,5 +42,35 @@ pub mod print_tools {
         write!(stdout, "{}", termion::cursor::Show).unwrap();
         stdout.flush().unwrap();
     }
+
+    pub fn print_at_pos(c: &str, x: u16, y: u16) {
+        let mut stdout = stdout().into_raw_mode().unwrap();        
+        write!(stdout, "{}{}", termion::cursor::Goto(x, y), c);
+        stdout.flush().unwrap();
+    }
 }
 
+pub mod input_tools {
+    use termion::event::Key;
+    use termion::input::TermRead;
+    use std::io::stdin;
+
+    pub fn wait_for_key(key: char) {
+        for c in stdin().keys() {
+            match c.unwrap() {
+                Key::Char(key) => break,
+                _              => continue,
+            }
+        }
+    }
+}
+
+pub mod tools {
+    use common::rand::Rng;
+
+    pub fn rand_x_y(width: u16, height: u16) -> (u16, u16) {
+        let x: u16 = rand::thread_rng().gen_range(1, width);
+        let y: u16 = rand::thread_rng().gen_range(1, height);
+        (x, y)
+    }
+}
