@@ -70,8 +70,15 @@ pub mod tools {
 
     pub fn rand_x_y(width: u16, height: u16) -> (u16, u16) {
         // Random value in [low, high); including low but not high.
-        let x: u16 = rand::thread_rng().gen_range(2, width);
-        let y: u16 = rand::thread_rng().gen_range(2, height);
+        let x: u16 = rand::thread_rng().gen_range(2, width-1);
+        let y: u16 = rand::thread_rng().gen_range(2, height-1);
+        (x, y)
+    }
+
+    pub fn rand_starting_position(width: u16, height: u16) -> (u16, u16) {
+         // Random value in [low, high); including low but not high.
+        let x: u16 = rand::thread_rng().gen_range(4, width-4);
+        let y: u16 = rand::thread_rng().gen_range(4, height-4);
         (x, y)
     }
 }
