@@ -176,10 +176,6 @@ impl Snek {
 
         // Create the tail..
         self.positions.push_back((x-1, y, HORIZONTAL_SNAKE_BODY));
-        self.positions.push_back((x-2, y, HORIZONTAL_SNAKE_BODY));
-        self.positions.push_back((x-3, y, HORIZONTAL_SNAKE_BODY));
-        self.positions.push_back((x-4, y, HORIZONTAL_SNAKE_BODY));
-        self.positions.push_back((x-5, y, HORIZONTAL_SNAKE_BODY));
     }
 
     fn step(&mut self, eat: bool) {
