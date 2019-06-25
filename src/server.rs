@@ -12,15 +12,16 @@ fn handle_client(mut stream: TcpStream) {
             let received =  str::from_utf8(&data[0..size]).unwrap();
             if size > 0 {
                 print_tools::print_line(format!("Received: {}", received));
-            }
             stream.write(&data[0..size]).unwrap();
+            print_tools::print_line(format!("Sent: {}", received));
+            }
             true
         },
-        Err(_) => {
-            print_tools::print_line(format!("An error occured, terminating connection with {}", stream.peer_addr().unwrap()));
-            stream.shutdown(Shutdown::Both).unwrap();
-            false
-        }
+            Err(_) => {
+                print_tools::print_line(format!("An error occured, terminating connection with {}", stream.peer_addr().unwrap()));
+                stream.shutdown(Shutdown::Both).unwrap();
+                false
+            }
     } {}
 }
 
@@ -44,6 +45,8 @@ pub fn main() {
             }
         }
     }
+    
+    print_tools::print_line(format!("Hellooo..."));
     // close the socket server
     drop(listener);
 }
