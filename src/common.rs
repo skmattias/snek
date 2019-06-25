@@ -69,8 +69,9 @@ pub mod tools {
     use common::rand::Rng;
 
     pub fn rand_x_y(width: u16, height: u16) -> (u16, u16) {
-        let x: u16 = rand::thread_rng().gen_range(1, width);
-        let y: u16 = rand::thread_rng().gen_range(1, height);
+        // Random value in [low, high); including low but not high.
+        let x: u16 = rand::thread_rng().gen_range(2, width);
+        let y: u16 = rand::thread_rng().gen_range(2, height);
         (x, y)
     }
 }

@@ -30,12 +30,14 @@ use termion::event::Key;
 use termion::raw::IntoRawMode;
 use termion::{async_stdin, clear, color, cursor, style};
 use snek::rand::Rng;
+use std::collections::VecDeque;
 
 use self::graphics::*;
 
 struct Game {
     width: u16,
     height: u16,
+    snek: Snek,
 }
 
 impl Game {
@@ -44,7 +46,8 @@ impl Game {
         input_tools::wait_for_key(' ');
 
         self.draw_board();
-        self.draw_snek_init();
+        self.snek.init(self.width, self.height);
+
         thread::sleep(Duration::from_secs(10));
     }
 
@@ -73,14 +76,6 @@ impl Game {
         stdout.flush().unwrap();
     }
 
-    fn draw_snek_init(&self) {
-        // Randomize a starting posiiton for the snake head.
-        let (x, y) = tools::rand_x_y(self.width, self.height);
-
-        // Draw snake head.
-        print_tools::print_at_pos(SNAKE_HEAD, x, y);
-    }
-
     fn generate_food(&self) {
         // let x: u16 = rand::thread_rng().gen_range(1, self.width);
         // let y: u16 = rand::thread_rng().gen_range(1, self.height);
@@ -91,7 +86,18 @@ impl Game {
 }
 
 struct Snek {
-    
+    positions: VecDeque<(u16, u16)>,
+}
+
+impl Snek {
+    fn init(&mut self, game_width: u16, game_height: u16) {
+        // Randomize a starting posiiton for the snake head.
+        let (x, y) = tools::rand_x_y(game_height, game_width);
+        self.positions.push_front((x, y));
+
+        // Draw snake head.
+        print_tools::print_at_pos(SNAKE_HEAD, 2, 2);
+    }
 }
 
 struct Food {
@@ -110,6 +116,7 @@ pub fn main() {
     let mut game = Game {
         height: size.1,
         width: size.0,
+        snek: Snek {positions: VecDeque::new()},
     };
     game.start();
 }
