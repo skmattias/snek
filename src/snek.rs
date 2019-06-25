@@ -52,7 +52,7 @@ impl Game {
         loop {
             self.snek.step(eat);
             eat = false;
-            if !self.check_borders() {
+            if !self.check_collisions() {
                 break;
             }
             if self.try_eat() {
@@ -88,14 +88,26 @@ impl Game {
         stdout.flush().unwrap();
     }
 
+    fn check_collisions(&self) -> bool {
+        self.check_borders() && self.check_snake_collision()
+    }
+
     fn check_borders(&self) -> bool {
-        // TODO check for snake collisions.
         self.snek.positions.iter().all(|&(x, y, _part)| {
             x > 1 && 
             x < self.width &&
             y > 1 &&
             y < self.height 
         })
+    }
+
+    fn check_snake_collision(&self) -> bool {
+        let &(h_x, h_y, _part) = self.snek.positions.front().unwrap();
+        let c = self.snek.positions.iter()
+            .filter(|&(x, y, _part)| *x == h_x && *y == h_y)
+            .count();
+        
+        c <= 1
     }
 
     fn try_eat(&mut self) -> bool {
