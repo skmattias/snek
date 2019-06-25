@@ -55,12 +55,18 @@ pub mod input_tools {
     use termion::input::TermRead;
     use std::io::stdin;
 
-    pub fn wait_for_key(key: char) {
+    pub fn wait_for_key(_key: char) {
         for c in stdin().keys() {
             match c.unwrap() {
-                Key::Char(key) => break,
+                Key::Char(_key) => break,
                 _              => continue,
             }
+        }
+    }
+
+    pub fn wait_for_any_key() {
+        for _c in stdin().keys() {
+            break;
         }
     }
 }

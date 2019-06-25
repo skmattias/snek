@@ -39,28 +39,45 @@ use self::graphics::*;
 struct Game {
     width: u16,
     height: u16,
-    snek: Snek,
+    snake: Snek,
     food: Vec<Food>,
+    score: i32,
 }
 
 impl Game {
     fn start(&mut self) {
         self.draw_board();
-        self.snek.init(self.width, self.height);
+        self.snake.init(self.width, self.height);
 
         let mut eat = false;
         loop {
-            self.snek.step(eat);
-            eat = false;
+            // Move the snake a step.
+            self.snake.step(eat);
+
+            
+            // Check for collisions.
             if !self.check_collisions() {
                 break;
             }
+
+            // Check for eaten food the last step.
             if self.try_eat() {
+                self.score += 1;
                 eat = true;
+            } else {
+                eat = false;
             }
-            self.generate_food();
+
+            // Gemerate new food, 20% chance.
+            self.generate_food(0.2);
+
+            // Wait until the next step.
             thread::sleep(Duration::from_millis(100));
         }
+
+        print_tools::print_at_pos(&format!("SCORE: {}", self.score), self.width/2, self.height/2);
+        print_tools::print_at_pos("PRESS Q TO QUIT", self.width/2, self.height/2 + 1);
+        input_tools::wait_for_any_key();
     }
 
     fn draw_board(&self) {
@@ -93,7 +110,7 @@ impl Game {
     }
 
     fn check_borders(&self) -> bool {
-        self.snek.positions.iter().all(|&(x, y, _part)| {
+        self.snake.positions.iter().all(|&(x, y, _part)| {
             x > 1 && 
             x < self.width &&
             y > 1 &&
@@ -102,8 +119,8 @@ impl Game {
     }
 
     fn check_snake_collision(&self) -> bool {
-        let &(h_x, h_y, _part) = self.snek.positions.front().unwrap();
-        let c = self.snek.positions.iter()
+        let &(h_x, h_y, _part) = self.snake.positions.front().unwrap();
+        let c = self.snake.positions.iter()
             .filter(|&(x, y, _part)| *x == h_x && *y == h_y)
             .count();
         
@@ -111,7 +128,7 @@ impl Game {
     }
 
     fn try_eat(&mut self) -> bool {
-        let &(h_x, h_y, _part) = self.snek.positions.front().unwrap();
+        let &(h_x, h_y, _part) = self.snake.positions.front().unwrap();
         if self.food.iter().any(|f| f.x == h_x && f.y == h_y) {
             self.food.retain(|&f| !(f.x == h_x && f.y == h_y));
             return true;
@@ -119,13 +136,13 @@ impl Game {
         false
     }
 
-    fn generate_food(&mut self) {
+    fn generate_food(&mut self, chance: f32) {
         // 20% chance to generate food.
         let result = rand::thread_rng().gen_range(0.0, 1.0);
-        if result < 0.2 {
+        if result < chance {
             // Randomize the food position, try again if there is a snake there.
             let mut pos = tools::rand_x_y(self.width, self.height);
-            while  self.snek.positions.iter().any(|&(sx, sy, _part)| sx == pos.0 && sy == pos.1) {
+            while  self.snake.positions.iter().any(|&(sx, sy, _part)| sx == pos.0 && sy == pos.1) {
                 pos = tools::rand_x_y(self.width, self.height);
             }
 
@@ -168,11 +185,18 @@ impl Snek {
     fn step(&mut self, eat: bool) {
         
         // Get the new direction.
-        let new_dir = *self.single_rx.latest();
+        let mut new_dir = *self.single_rx.latest();
         let old_dir = self.direction;
 
         // Update the direction.
-        self.direction = new_dir;
+        if (old_dir == Direction::Right && new_dir == Direction::Left) ||
+           (old_dir == Direction::Left && new_dir == Direction::Right) ||
+           (old_dir == Direction::Up && new_dir == Direction::Down) ||
+           (old_dir == Direction::Down && new_dir == Direction::Up) {
+            new_dir = old_dir;
+        } else {
+            self.direction = new_dir;
+        }
 
         // Get the old head.
         let &(old_head_x, old_head_y, _old_head_snake_part) = 
@@ -250,12 +274,13 @@ pub fn main() {
     let mut game = Game {
         height: size.1,
         width: size.0,
-        snek: Snek {
+        snake: Snek {
             positions: VecDeque::new(), 
             direction: Direction::Right,
             single_rx: receiver,
         },
         food: Vec::new(),
+        score: 0,
     };
 
     print_tools::clear_and_print_line((*graphics::GAME_START_PROMPT).to_string());
@@ -268,9 +293,14 @@ pub fn main() {
                 Key::Down   => updater.update(Direction::Down).unwrap(),
                 Key::Left   => updater.update(Direction::Left).unwrap(),
                 Key::Right  => updater.update(Direction::Right).unwrap(),
+                Key::Char('q') => {
+                    print_tools::clear();
+                    break;
+                },
                 _           => continue,
             }
         }
     });
+
     game.start();
 }
