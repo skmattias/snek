@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate single_value_channel;
 
 mod graphics {
     pub const TOP_LEFT_CORNER: &'static str = "╔";
@@ -28,9 +29,10 @@ use std::time::Duration;
 use termion::input::TermRead;
 use termion::event::Key;
 use termion::raw::IntoRawMode;
-use termion::{async_stdin, clear, color, cursor, style};
+use termion::{cursor};
 use snek::rand::Rng;
 use std::collections::VecDeque;
+use self::single_value_channel::channel_starting_with;
 
 use self::graphics::*;
 
@@ -38,17 +40,27 @@ struct Game {
     width: u16,
     height: u16,
     snek: Snek,
+    food: Vec<Food>,
 }
 
 impl Game {
     fn start(&mut self) {
-        print_tools::clear_and_print_line((*graphics::GAME_START_PROMPT).to_string());
-        input_tools::wait_for_key(' ');
-
         self.draw_board();
         self.snek.init(self.width, self.height);
 
-        thread::sleep(Duration::from_secs(10));
+        let mut eat = false;
+        loop {
+            self.snek.step(eat);
+            eat = false;
+            if !self.check_borders() {
+                break;
+            }
+            if self.try_eat() {
+                eat = true;
+            }
+            self.generate_food();
+            thread::sleep(Duration::from_millis(100));
+        }
     }
 
     fn draw_board(&self) {
@@ -76,30 +88,138 @@ impl Game {
         stdout.flush().unwrap();
     }
 
-    fn generate_food(&self) {
-        // let x: u16 = rand::thread_rng().gen_range(1, self.width);
-        // let y: u16 = rand::thread_rng().gen_range(1, self.height);
-        // TODO check that there is no snek here...
+    fn check_borders(&self) -> bool {
+        // TODO check for snake collisions.
+        self.snek.positions.iter().all(|&(x, y, _part)| {
+            x > 1 && 
+            x < self.width &&
+            y > 1 &&
+            y < self.height 
+        })
+    }
 
+    fn try_eat(&mut self) -> bool {
+        let &(h_x, h_y, _part) = self.snek.positions.front().unwrap();
+        if self.food.iter().any(|f| f.x == h_x && f.y == h_y) {
+            self.food.retain(|&f| !(f.x == h_x && f.y == h_y));
+            return true;
+        }
+        false
+    }
 
+    fn generate_food(&mut self) {
+        // 20% chance to generate food.
+        let result = rand::thread_rng().gen_range(0.0, 1.0);
+        if result < 0.2 {
+            // Randomize the food position, try again if there is a snake there.
+            let mut pos = tools::rand_x_y(self.width, self.height);
+            while  self.snek.positions.iter().any(|&(sx, sy, _part)| sx == pos.0 && sy == pos.1) {
+                pos = tools::rand_x_y(self.width, self.height);
+            }
+
+            let food = Food {x: pos.0, y: pos.1};
+            self.food.push(food);
+            print_tools::print_at_pos(FOOD, pos.0, pos.1);
+        }
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum Direction {
+    Up,
+    Right,
+    Down, 
+    Left,
+}
+
 struct Snek {
-    positions: VecDeque<(u16, u16)>,
+    // x, y, snake_part.
+    positions: VecDeque<(u16, u16, &'static str)>,
+    direction: Direction,
+    single_rx: single_value_channel::Receiver<Direction>
 }
 
 impl Snek {
     fn init(&mut self, game_width: u16, game_height: u16) {
         // Randomize a starting posiiton for the snake head.
-        let (x, y) = tools::rand_x_y(game_height, game_width);
-        self.positions.push_front((x, y));
+        let (x, y) = tools::rand_starting_position(game_width, game_height);
+        self.positions.push_front((x, y, HORIZONTAL_SNAKE_BODY));
 
-        // Draw snake head.
-        print_tools::print_at_pos(SNAKE_HEAD, 2, 2);
+        // Create the tail..
+        self.positions.push_back((x-1, y, HORIZONTAL_SNAKE_BODY));
+        self.positions.push_back((x-2, y, HORIZONTAL_SNAKE_BODY));
+        self.positions.push_back((x-3, y, HORIZONTAL_SNAKE_BODY));
+        self.positions.push_back((x-4, y, HORIZONTAL_SNAKE_BODY));
+        self.positions.push_back((x-5, y, HORIZONTAL_SNAKE_BODY));
+    }
+
+    fn step(&mut self, eat: bool) {
+        
+        // Get the new direction.
+        let new_dir = *self.single_rx.latest();
+        let old_dir = self.direction;
+
+        // Update the direction.
+        self.direction = new_dir;
+
+        // Get the old head.
+        let &(old_head_x, old_head_y, _old_head_snake_part) = 
+            self.positions.front().unwrap();
+        
+        let (mut new_head_x, mut new_head_y) = (old_head_x, old_head_y);
+
+        // Push the new head.
+        match new_dir {
+            Direction::Up => new_head_y -= 1,
+            Direction::Down => new_head_y += 1,
+            Direction::Left => new_head_x -= 1,
+            Direction::Right => new_head_x += 1,
+        };
+        self.positions.push_front((new_head_x, new_head_y, SNAKE_HEAD));
+
+        // Set the old head snake part.
+        let neck_part = dir_to_snake_part(old_dir, new_dir);
+        self.positions.remove(1);
+        self.positions.insert(1, (old_head_x, old_head_y, neck_part));
+
+        // Remove the old end of the tail.
+        if !eat {
+            let old_tail = self.positions.pop_back().unwrap();
+            print_tools::print_at_pos(" ", old_tail.0, old_tail.1);
+        }
+        
+        // Draw.
+        for &(x, y, part) in self.positions.iter() {
+            print_tools::print_at_pos(part, x, y);
+        }
     }
 }
 
+fn dir_to_snake_part(old: Direction, new: Direction) -> &'static str {
+    if        old == Direction::Right && new == Direction::Right ||
+                old == Direction::Left && new == Direction::Left {
+        return HORIZONTAL_SNAKE_BODY;
+    } else if old == Direction::Up && new == Direction::Up ||
+                old == Direction::Down && new == Direction::Down {
+        return VERTICAL_SNAKE_BODY;
+    } else if old == Direction::Right && new == Direction::Down ||
+                old == Direction::Up && new == Direction::Left {
+        return TOP_RIGHT_CORNER;
+    } else if old == Direction::Left && new == Direction::Down ||
+                old == Direction::Up && new == Direction::Right {
+        return TOP_LEFT_CORNER;
+    } else if old == Direction::Right && new == Direction::Up ||
+                old == Direction::Down && new == Direction::Left {
+        return BOTTOM_RIGHT_CORNER;
+    } else if old == Direction::Left && new == Direction::Up ||
+                old == Direction::Down && new == Direction::Right {
+        return BOTTOM_LEFT_CORNER;
+    } else {
+        return " ";
+    }
+}
+
+#[derive(Copy, Clone)]
 struct Food {
     x: u16,
     y: u16,
@@ -111,12 +231,34 @@ use common::input_tools;
 use common::tools;
 
 pub fn main() {
+    let (receiver, updater) = channel_starting_with(Direction::Right);
+
     // Init a game the size of the terminal window.
     let size = termion::terminal_size().unwrap();
     let mut game = Game {
         height: size.1,
         width: size.0,
-        snek: Snek {positions: VecDeque::new()},
+        snek: Snek {
+            positions: VecDeque::new(), 
+            direction: Direction::Right,
+            single_rx: receiver,
+        },
+        food: Vec::new(),
     };
+
+    print_tools::clear_and_print_line((*graphics::GAME_START_PROMPT).to_string());
+    input_tools::wait_for_key(' ');
+
+    thread::spawn(move || {
+        for c in stdin().keys() {
+            match c.unwrap() {
+                Key::Up     => updater.update(Direction::Up).unwrap(),
+                Key::Down   => updater.update(Direction::Down).unwrap(),
+                Key::Left   => updater.update(Direction::Left).unwrap(),
+                Key::Right  => updater.update(Direction::Right).unwrap(),
+                _           => continue,
+            }
+        }
+    });
     game.start();
 }

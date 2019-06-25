@@ -5,3 +5,4 @@ version = "0.1.0"
 [dependencies]
 termion = "1"
 rand = "0.6.5"
+single_value_channel = "1.2.0"
