@@ -7,13 +7,9 @@ use termion::event::Key;
 use termion::input::TermRead;
 
 pub fn main() {
-
     let stream = TcpStream::connect("localhost:3333").unwrap();
-
     loop {
         let pressed_key = read_key();
-
-
         send_key(&stream, &pressed_key);
         if pressed_key == "quit  " {
             print_tools::print_line(format!("Exiting!"));
@@ -21,38 +17,26 @@ pub fn main() {
         }
         receive_player_positions(&stream)
     }
-
     print_tools::print_line("Terminated".to_string());
 }
 
 fn receive_player_positions(mut stream : &TcpStream) {
-
     let mut data = [0 as u8; 6]; // using 6 byte buffer
     match stream.read_exact(&mut data) {
         Ok(_) => {
             let received = from_utf8(&data).unwrap();
-            // print_tools::print_line(format!("Received {}", received));
-            // if received == pressed_key {
-            print_tools::print_line("Reply is ok!".to_string());
-            // } else {
-            // let text = from_utf8(&data).unwrap();
-            // print_tools::print_line(format!("Unexpected reply: {}", text));
-            // }
+            print_tools::print_line(format!("Reply is {}", received));
         },
         Err(e) => {
             print_tools::print_line(format!("Failed to receive data: {}", e));
         }
     }
-
 }
 
 fn read_key() -> String {
     let stdin = stdin();
     let mut pressed_key = "";
-
     for c in stdin.keys() {
-        let go: bool = false;
-
         // Print the key we type...
         match c.unwrap() {
             // Exit.
@@ -83,7 +67,6 @@ fn read_key() -> String {
             _              => continue,
         }
     }
-
     pressed_key.to_string()
 }
 

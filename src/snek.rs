@@ -68,8 +68,8 @@ impl Game {
                 eat = false;
             }
 
-            // Gemerate new food, 20% chance.
-            self.generate_food(0.2);
+            // Gemerate new food.
+            self.generate_food(10);
 
             // Wait until the next step.
             thread::sleep(Duration::from_millis(100));
@@ -136,7 +136,9 @@ impl Game {
         false
     }
 
-    fn generate_food(&mut self, chance: f32) {
+    fn generate_food(&mut self, factor: i32) {
+        let chance = 1.0 / i32::pow(factor, self.food.len() as u32) as f32;
+
         // 20% chance to generate food.
         let result = rand::thread_rng().gen_range(0.0, 1.0);
         if result < chance {
