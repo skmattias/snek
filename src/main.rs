@@ -1,8 +1,6 @@
 extern crate termion;
 
-use std::io::{stdin,stdout,Write};
-use std::time::Duration;
-use std::thread;
+use std::io::stdin;
 
 mod common;
 mod client;
@@ -10,22 +8,18 @@ mod server;
 mod snek;
 
 use common::print_tools;
-use termion::*;
-use termion::raw::IntoRawMode;
 use termion::event::Key;
 use termion::input::TermRead;
 
 fn main() {
     // Get the standard input stream.
     let stdin = stdin();
-    let mut stdout = stdout().into_raw_mode().unwrap();
     let mut selection: usize = 0;
     let options = vec!["Server", "Client", "Single Player"];
     write_options(&options, selection);
 
 
     for c in stdin.keys() {
-        let go: bool = false;
         print_tools::clear();
 
         // Print the key we type...
@@ -61,7 +55,7 @@ fn main() {
 fn write_options(options: &Vec<&str>, selected: usize) {
     let mut to_print = String::new();
     for (i, s) in options.iter().enumerate() {
-        let mut to_add = String::new();
+        let to_add;
         if i == selected {
             to_add = format!("> {}\r\n", s);
         } else {
