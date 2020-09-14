@@ -31,11 +31,11 @@ pub mod print_tools {
         stdout.flush().unwrap();
     }
 
-    pub fn hide_cursor() {
-        let mut stdout = stdout().into_raw_mode().unwrap();        
-        write!(stdout, "{}", termion::cursor::Hide).unwrap();
-        stdout.flush().unwrap();
-    }
+    // pub fn hide_cursor() {
+    //     let mut stdout = stdout().into_raw_mode().unwrap();        
+    //     write!(stdout, "{}", termion::cursor::Hide).unwrap();
+    //     stdout.flush().unwrap();
+    // }
 
     pub fn show_cursor() {
         let mut stdout = stdout().into_raw_mode().unwrap();        
